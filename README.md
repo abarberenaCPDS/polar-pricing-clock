@@ -5,6 +5,14 @@
 
 A polar chart visualization rendering a 24-hour weekly pricing clock (peak/off-peak hours across all seven days) for a given timezone. Defaults to the system timezone, with a list of common timezones to choose from.
 
+## Preview
+
+![Static pricing clock](perfected_pricing_clock.png)
+
+Animated preview (`pricing_clock.gif` — day-ring highlight + current-time marker pulse):
+
+![Animated pricing clock](pricing_clock.gif)
+
 ## Quick Start
 
 ```bash
