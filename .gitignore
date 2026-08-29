@@ -1,0 +1,21 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated output
+perfected_pricing_clock.png
+pricing_clock.gif
+
+# OS artifacts
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Environment variables
+.env
