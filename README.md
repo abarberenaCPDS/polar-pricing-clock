@@ -7,11 +7,12 @@ A polar chart visualization rendering a 24-hour weekly pricing clock (peak/off-p
 
 ## Preview
 
-![Static pricing clock](perfected_pricing_clock.png)
+| UTC | Pacific Time (`America/Los_Angeles`) |
+|---|---|
+| ![Static pricing clock (UTC)](perfected_pricing_clock_utc.png) | ![Static pricing clock (PT)](perfected_pricing_clock_pt.png) |
+| ![Animated pricing clock (UTC)](pricing_clock_utc.gif) | ![Animated pricing clock (PT)](pricing_clock_pt.gif) |
 
-Animated preview (`pricing_clock.gif` — day-ring highlight + current-time marker pulse):
-
-![Animated pricing clock](pricing_clock.gif)
+Animated previews (`pricing_clock_utc.gif`, `pricing_clock_pt.gif`) show a day-ring highlight + current-time marker pulse.
 
 ## Quick Start
 
@@ -42,7 +43,7 @@ python main.py --animate --headless                # GIF, no window
 
 All tunables live at the top of `main.py` under `# --- Configuration ---`:
 
-- `PEAK_HOURS` — peak pricing windows (local time)
+- `UTC_PEAK_HOURS` / `UTC_PEAK_WEEKDAYS` — peak pricing windows, defined in UTC (converted to each chart's local timezone, DST-aware)
 - `PEAK_COLOR` / `OFF_PEAK_COLOR` — slice colors
 - `HOUR_LABEL_PAD`, `HOUR_LABEL_VA`, `HOUR_LABEL_HA` — hour label spacing and alignment
 - `GIF_FPS`, `GIF_DPI`, animation colors — GIF output

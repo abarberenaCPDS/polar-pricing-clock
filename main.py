@@ -7,7 +7,7 @@ for a given timezone. Output: perfected_pricing_clock.png (300 DPI).
 import argparse
 import subprocess
 import zoneinfo
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,7 +15,10 @@ from matplotlib.animation import FuncAnimation
 
 # --- Configuration ---
 
-PEAK_HOURS = list(range(18, 21)) + [23, 0, 1, 2]
+# Peak windows are defined in UTC, Monday-Friday (UTC weekday), regardless of
+# the chart's display timezone. 01:00-04:00 and 06:00-10:00 UTC -> hours 1-3, 6-9.
+UTC_PEAK_HOURS = {1, 2, 3, 6, 7, 8, 9}
+UTC_PEAK_WEEKDAYS = {0, 1, 2, 3, 4}  # datetime.weekday(): Monday=0 ... Sunday=6
 
 PEAK_COLOR = '#EA4335'
 OFF_PEAK_COLOR = '#34A853'
@@ -28,7 +31,6 @@ DAY_LABEL_HOUR = 4
 RMAX = 8.2
 SLICE_EDGE_WIDTH = 1.2
 HOURS_PER_DAY = 24
-WEEKEND_DAYS = {'Saturday', 'Sunday'}
 TEXT_COLOR = '#2C3E50'
 
 TITLE_FONT_SIZE = 16
@@ -140,20 +142,39 @@ def setup_axes(figsize=FIG_SIZE):
     return fig, ax
 
 
-def get_slice_color(day, hour, peak_hours):
-    if day in WEEKEND_DAYS or hour not in peak_hours:
-        return OFF_PEAK_COLOR
-    return PEAK_COLOR
+def compute_peak_grid(tz, reference_date=None):
+    """For each (day_index, local_hour) cell, determine peak/off-peak by
+    converting that local slot to UTC and testing it against the UTC-defined
+    peak windows. A reference Monday-start week is used since DST can shift
+    which local hours map to the UTC peak windows across the year."""
+    if reference_date is None:
+        reference_date = datetime.now(tz).date()
+    monday = reference_date - timedelta(days=reference_date.weekday())
+
+    grid = [[False] * HOURS_PER_DAY for _ in DAYS]
+    for day_index in range(len(DAYS)):
+        local_date = monday + timedelta(days=day_index)
+        for hour in range(HOURS_PER_DAY):
+            local_dt = datetime(local_date.year, local_date.month, local_date.day,
+                                 hour, tzinfo=tz)
+            utc_dt = local_dt.astimezone(zoneinfo.ZoneInfo('UTC'))
+            grid[day_index][hour] = (utc_dt.weekday() in UTC_PEAK_WEEKDAYS
+                                      and utc_dt.hour in UTC_PEAK_HOURS)
+    return grid
 
 
-def render_rings(ax, angles, width, peak_hours):
+def get_slice_color(day_index, hour, peak_grid):
+    return PEAK_COLOR if peak_grid[day_index][hour] else OFF_PEAK_COLOR
+
+
+def render_rings(ax, angles, width, peak_grid):
     for i, day in enumerate(DAYS):
         radii = i + 1
 
         for hour in range(HOURS_PER_DAY):
-            color = get_slice_color(day, hour, peak_hours)
+            color = get_slice_color(i, hour, peak_grid)
 
-            ax.bar(angles[hour], BAR_HEIGHT, width=width, bottom=radii,
+            ax.bar(angles[hour], BAR_HEIGHT, width=width, bottom=radii, align='edge',
                    color=color, edgecolor='white', linewidth=SLICE_EDGE_WIDTH)
 
 
@@ -191,23 +212,24 @@ def set_title(ax, tz_name):
     # ax.grid(True)
 
 
-def save_and_show(fig, show=True):
-    fig.savefig(OUTPUT_FILENAME, dpi=DPI, bbox_inches='tight')
+def save_and_show(fig, show=True, filename=OUTPUT_FILENAME):
+    fig.savefig(filename, dpi=DPI)
     if show:
         plt.show()
 
 
-def generate_chart(tz=None, show=True):
+def generate_chart(tz=None, show=True, filename=OUTPUT_FILENAME):
     tz = select_timezone() if tz is None else tz
 
     angles, width = compute_hour_angles()
     fig, ax = setup_axes()
-    render_rings(ax, angles, width, PEAK_HOURS)
+    peak_grid = compute_peak_grid(tz)
+    render_rings(ax, angles, width, peak_grid)
     add_hour_labels(ax, angles)
     add_day_labels(ax, angles)
     finalize_axes(ax)
     set_title(ax, str(tz))
-    save_and_show(fig, show)
+    save_and_show(fig, show, filename)
 
 
 def get_current_day_hour(tz):
@@ -250,7 +272,8 @@ def update_animation(frame, highlight, marker_line, marker_dot):
 def render_animation(tz, show=True, filename=GIF_FILENAME):
     angles, width = compute_hour_angles()
     fig, ax = setup_axes()
-    render_rings(ax, angles, width, PEAK_HOURS)
+    peak_grid = compute_peak_grid(tz)
+    render_rings(ax, angles, width, peak_grid)
     add_hour_labels(ax, angles)
     add_day_labels(ax, angles)
     finalize_axes(ax)
